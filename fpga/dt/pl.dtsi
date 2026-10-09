@@ -1,0 +1,28 @@
+// -----------------------------------------------------------------------------
+// File:        pl.dtsi
+// Description: Device tree overlay that programs the fabric. Generated from the
+//              same address map as the register headers and the block design.
+//              Only the control register aperture is published as a userspace
+//              I/O node; the camera and i2c apertures are claimed by kernel
+//              drivers.
+// -----------------------------------------------------------------------------
+
+/dts-v1/;
+/plugin/;
+&fpga_full {
+    #address-cells = <2>;
+    #size-cells = <2>;
+    firmware-name = "kv260_gige.bit.bin";
+    resets = <&zynqmp_reset 116>, <&zynqmp_reset 117>, <&zynqmp_reset 118>, <&zynqmp_reset 119>;
+};
+&amba {
+    #address-cells = <2>;
+    #size-cells = <2>;
+    window_base: window_base@a0020000 {
+        compatible = "generic-uio";
+        linux,uio-name = "window_base";
+        reg = <0x0 0xa0020000 0x0 0x1000>;
+        interrupt-parent = <&gic>;
+        interrupts = <0 89 4>;
+    };
+};

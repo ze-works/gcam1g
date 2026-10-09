@@ -1,0 +1,177 @@
+// SPDX-License-Identifier: GPL-2.0
+// -----------------------------------------------------------------------------
+// File:        cam_overlay.dts
+// Description: Device tree overlay that attaches the camera and its image
+//              signal processor to the i2c controller in the fabric. Apply it
+//              once; applying it repeatedly leaves the bus unusable until the
+//              board is rebooted.
+// License:     GPL-2.0, unlike the rest of this repository. The AP1302 node
+//              follows kv260-smartcam.dtsi from Xilinx kria-apps-firmware,
+//              (C) Copyright 2020 - 2021, Xilinx, Inc.
+// -----------------------------------------------------------------------------
+
+/dts-v1/;
+
+/ {
+
+	fragment@0 {
+		target = <0xffffffff>;
+
+		__overlay__ {
+			#address-cells = <0x02>;
+			#size-cells = <0x02>;
+
+			cam_iic_fixed_clk {
+				compatible = "fixed-clock";
+				#clock-cells = <0x00>;
+				clock-frequency = <0x8f0d180>;
+				phandle = <0x01>;
+			};
+
+			ap1302_sensor_clk {
+				compatible = "fixed-clock";
+				#clock-cells = <0x00>;
+				clock-frequency = <0x2dc6c00>;
+				phandle = <0x02>;
+			};
+
+			ap1302_vdd_reg {
+				compatible = "regulator-fixed";
+				regulator-name = "ap1302_vdd";
+				regulator-min-microvolt = <0x2ab980>;
+				regulator-max-microvolt = <0x2ab980>;
+				phandle = <0x03>;
+			};
+
+			ap1302_vaa_reg {
+				compatible = "regulator-fixed";
+				regulator-name = "ap1302_vaa";
+				regulator-min-microvolt = <0x1b7740>;
+				regulator-max-microvolt = <0x1b7740>;
+				phandle = <0x04>;
+			};
+
+			ap1302_vddio_reg {
+				compatible = "regulator-fixed";
+				regulator-name = "ap1302_vddio";
+				regulator-min-microvolt = <0x124f80>;
+				regulator-max-microvolt = <0x124f80>;
+				phandle = <0x05>;
+			};
+
+			i2c@a0110000 {
+				compatible = "xlnx,axi-iic-2.0\0xlnx,xps-iic-2.00.a";
+				reg = <0x00 0xa0110000 0x00 0x10000>;
+				clocks = <0x01>;
+				clock-names = "s_axi_aclk";
+				interrupt-parent = <0xffffffff>;
+				interrupts = <0x00 0x5a 0x04>;
+				interrupt-names = "iic2intc_irpt";
+				#address-cells = <0x01>;
+				#size-cells = <0x00>;
+				phandle = <0x06>;
+
+				i2c-mux@74 {
+					compatible = "nxp,pca9546";
+					reg = <0x74>;
+					#address-cells = <0x01>;
+					#size-cells = <0x00>;
+
+					i2c@0 {
+						reg = <0x00>;
+						#address-cells = <0x01>;
+						#size-cells = <0x00>;
+						phandle = <0x07>;
+
+						isp@3c {
+							compatible = "onnn,ap1302";
+							reg = <0x3c>;
+							reset-gpios = <0xffffffff 0x4e 0x01>;
+							clocks = <0x02>;
+							#address-cells = <0x01>;
+							#size-cells = <0x00>;
+							phandle = <0x08>;
+
+							sensors {
+								#address-cells = <0x01>;
+								#size-cells = <0x00>;
+								onnn,model = "onnn,ar1335";
+
+								sensor@0 {
+									reg = <0x00>;
+									vdd-supply = <0x03>;
+									vaa-supply = <0x04>;
+									vddio-supply = <0x05>;
+								};
+							};
+
+							ports {
+								#address-cells = <0x01>;
+								#size-cells = <0x00>;
+
+								port@0 {
+									reg = <0x02>;
+
+									endpoint {
+										data-lanes = <0x01 0x02 0x03 0x04>;
+										phandle = <0x09>;
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+
+	__symbols__ {
+		cam_iic_clk = "/fragment@0/__overlay__/cam_iic_fixed_clk";
+		ap1302_sensor_clk = "/fragment@0/__overlay__/ap1302_sensor_clk";
+		ap1302_vdd = "/fragment@0/__overlay__/ap1302_vdd_reg";
+		ap1302_vaa = "/fragment@0/__overlay__/ap1302_vaa_reg";
+		ap1302_vddio = "/fragment@0/__overlay__/ap1302_vddio_reg";
+		cam_axi_iic = "/fragment@0/__overlay__/i2c@a0110000";
+		cam_i2c_ch0 = "/fragment@0/__overlay__/i2c@a0110000/i2c-mux@74/i2c@0";
+		ap1302 = "/fragment@0/__overlay__/i2c@a0110000/i2c-mux@74/i2c@0/isp@3c";
+		ap1302_out = "/fragment@0/__overlay__/i2c@a0110000/i2c-mux@74/i2c@0/isp@3c/ports/port@0/endpoint";
+	};
+
+	__fixups__ {
+		amba = "/fragment@0:target:0";
+		gic = "/fragment@0/__overlay__/i2c@a0110000:interrupt-parent:0";
+		gpio = "/fragment@0/__overlay__/i2c@a0110000/i2c-mux@74/i2c@0/isp@3c:reset-gpios:0";
+	};
+
+	__local_fixups__ {
+
+		fragment@0 {
+
+			__overlay__ {
+
+				i2c@a0110000 {
+					clocks = <0x00>;
+
+					i2c-mux@74 {
+
+						i2c@0 {
+
+							isp@3c {
+								clocks = <0x00>;
+
+								sensors {
+
+									sensor@0 {
+										vdd-supply = <0x00>;
+										vaa-supply = <0x00>;
+										vddio-supply = <0x00>;
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
